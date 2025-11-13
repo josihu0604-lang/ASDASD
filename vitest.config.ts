@@ -6,12 +6,14 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
+    include: ['__tests__/**/*.spec.ts', '__tests__/**/*.test.ts'],
+    exclude: ['__tests__/e2e/**', 'node_modules/**', '.next/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       exclude: [
         'node_modules/',
-        '__tests__/',
+        '__tests__/e2e/',
         '*.config.*',
         '.next/',
         'scripts/',
