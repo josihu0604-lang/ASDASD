@@ -67,36 +67,60 @@ export default function QRScannerView({
     onResult(mockQRData);
   };
 
+  // 스펙: 권한 상태 prompt/denied/unavailable 3분기
   if (hasPermission === null) {
+    // prompt: 권한 요청 중
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
         <div className="text-white text-center">
           <div className="animate-spin h-12 w-12 border-4 border-white border-t-transparent rounded-full mx-auto mb-4" />
-          <p>카메라 권한을 확인하는 중...</p>
+          <p className="typo-body">카메라 권한을 확인하는 중...</p>
         </div>
       </div>
     );
   }
 
   if (hasPermission === false) {
+    // denied: 권한 거부됨 (+ unavailable 케이스)
     return (
-      <div className="fixed inset-0 bg-[var(--bg-base)] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-[var(--bg-base)] flex items-center justify-center p-4 z-50">
         <div className="text-center max-w-sm">
+          {/* 닫기 버튼 */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 left-4 h-10 w-10 rounded-full bg-[var(--bg-subtle)] flex items-center justify-center"
+              aria-label="닫기"
+            >
+              <X size={24} strokeWidth={2} />
+            </button>
+          )}
+
           <div className="rounded-full bg-[var(--danger)]/10 p-6 mx-auto mb-4 w-fit">
-            <AlertCircle size={48} className="text-[var(--danger)]" />
+            <AlertCircle size={48} className="text-[var(--danger)]" strokeWidth={1.5} />
           </div>
           <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
             카메라 권한이 필요합니다
           </h3>
-          <p className="text-sm text-[var(--text-secondary)] mb-6">
+          <p className="typo-caption text-[var(--text-secondary)] mb-6">
             QR 코드를 스캔하려면 카메라 접근 권한을 허용해 주세요.
+            <br />
+            설정 &gt; 앱 권한에서 카메라를 활성화하세요.
           </p>
-          <button
-            onClick={requestCameraPermission}
-            className={getButtonClasses('primary', 'md')}
-          >
-            권한 허용하기
-          </button>
+          <div className="flex flex-col gap-[var(--sp-2)]">
+            <button
+              onClick={requestCameraPermission}
+              className={`${getButtonClasses('primary', 'md')} min-h-[var(--touch-min)]`}
+            >
+              권한 허용하기
+            </button>
+            <button
+              onClick={handleManualEntry}
+              className={`${getButtonClasses('ghost', 'md')} min-h-[var(--touch-min)]`}
+            >
+              코드 수동 입력
+            </button>
+          </div>
         </div>
       </div>
     );

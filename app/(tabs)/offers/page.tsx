@@ -1,90 +1,63 @@
 'use client';
 
-import { useState } from 'react';
-import FilterChips from '@/components/pass/FilterChips';
-import OfferCard from '@/components/offers/OfferCard';
-import EmptyState from '@/components/states/EmptyState';
-import { Filter, Offer } from '@/types';
-import { Gift } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import OfferFilters from '@/components/offers/OfferFilters';
+import OfferList, { OfferFilter } from '@/components/offers/OfferList';
 import { analytics } from '@/lib/analytics';
 import { useRouter } from 'next/navigation';
 
-const filterOptions: Filter[] = [
-  { id: 'all', label: '전체', selected: true },
-  { id: 'new', label: '새로온', selected: false },
-  { id: 'expiring', label: '만료임박', selected: false },
-];
-
-// Mock data
-const mockOffers: Offer[] = [
-  {
-    id: '1',
-    brandName: '스타벅스',
-    brandLogo: 'https://images.unsplash.com/photo-1561882468-9110e03e0f78?w=100',
-    title: '신규 고객 환영 이벤트',
-    benefit: '아메리카노 1잔 무료',
-    conditions: ['첫 방문 시', '1인 1회 한정'],
-    validFrom: new Date('2024-01-01'),
-    validUntil: new Date('2024-12-31'),
-    distance: 0.5,
-    isNew: true,
-    status: 'new',
-    places: [],
-  },
-  {
-    id: '2',
-    brandName: '올리브영',
-    brandLogo: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=100',
-    title: '뷰티 체험단 모집',
-    benefit: '5만원 이상 구매 시 20% 할인',
-    conditions: ['신규 가입 회원', '기간 내 사용'],
-    validFrom: new Date('2024-01-15'),
-    validUntil: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-    distance: 1.2,
-    status: 'expiring_soon',
-    places: [],
-  },
-];
-
 export default function OffersPage() {
   const router = useRouter();
-  const [filters, setFilters] = useState<Filter[]>(filterOptions);
-  const [offers] = useState<Offer[]>(mockOffers);
+  const [selectedFilter, setSelectedFilter] = useState<OfferFilter>('all');
+  const [walletCount, setWalletCount] = useState(0);
 
-  const activeFilter = filters.find((f) => f.selected)?.id || 'all';
+  // Track page view on mount
+  useEffect(() => {
+    analytics.offersView(selectedFilter);
+  }, [selectedFilter]);
 
-  // Track page view
-  useState(() => {
-    analytics.offersView(activeFilter as 'all' | 'new' | 'expiring');
-  });
-
-  const filteredOffers = offers.filter((offer) => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'new') return offer.status === 'new';
-    if (activeFilter === 'expiring') return offer.status === 'expiring_soon';
-    return true;
-  });
-
-  const handleFilterToggle = (id: string) => {
-    setFilters((prev) =>
-      prev.map((f) => ({
-        ...f,
-        selected: f.id === id,
-      }))
-    );
-    analytics.offersView(id as 'all' | 'new' | 'expiring');
+  const handleFilterChange = (filter: OfferFilter) => {
+    setSelectedFilter(filter);
+    analytics.offersView(filter);
   };
 
-  const handleAccept = (offerId: string) => {
-    console.log('Accept offer:', offerId);
-    analytics.offerAccept(offerId);
-    // In production, save to wallet
+  const handleAccept = async (offerId: string) => {
+    try {
+      // Track analytics event (스펙: offer_save)
+      analytics.offerAccept(offerId);
+      console.log('[Offers] Accept offer:', offerId);
+
+      // Simulate API call for wallet issuance
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Update wallet count (스펙: 지갑 탭 뱃지+1)
+      setWalletCount((prev) => prev + 1);
+
+      // Show success toast (스펙: "지갑에 발급됨" 토스트)
+      if (typeof window !== 'undefined') {
+        // Simple toast implementation - can be replaced with proper toast library
+        const toast = document.createElement('div');
+        toast.textContent = '지갑에 발급됨 ✓';
+        toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 bg-[var(--success)] text-white px-4 py-2 rounded-[var(--radius-md)] shadow-[var(--elev-2)] z-50 animate-fade-up typo-caption font-medium';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      }
+    } catch (error) {
+      console.error('[Offers] Failed to accept:', error);
+      // Show error toast
+      if (typeof window !== 'undefined') {
+        const toast = document.createElement('div');
+        toast.textContent = '오류가 발생했습니다';
+        toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 bg-[var(--danger)] text-white px-4 py-2 rounded-[var(--radius-md)] shadow-[var(--elev-2)] z-50 animate-fade-up typo-caption font-medium';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      }
+    }
   };
 
-  const handleDismiss = (offerId: string) => {
-    console.log('Dismiss offer:', offerId);
+  const handleLater = (offerId: string) => {
     analytics.offerDismiss(offerId);
-    // In production, hide offer
+    console.log('[Offers] Dismiss offer:', offerId);
   };
 
   const handleOpenDetail = (offerId: string) => {
@@ -93,38 +66,37 @@ export default function OffersPage() {
   };
 
   return (
-    <div className="p-4 space-y-[var(--sp-4)]">
+    <div className="min-h-screen bg-[var(--bg-base)] pb-[calc(var(--sp-12)+env(safe-area-inset-bottom))]">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
-          받은 오퍼
-        </h1>
-        <p className="text-sm text-[var(--text-secondary)]">
-          브랜드에서 보낸 맞춤 제안을 확인하세요
-        </p>
+      <div className="sticky top-0 z-10 bg-[var(--bg-base)] border-b border-[var(--border)] px-[var(--sp-4)] pt-[var(--sp-4)] pb-[var(--sp-3)]">
+        <div className="mb-[var(--sp-3)]">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
+            받은 오퍼
+          </h1>
+          <p className="typo-caption text-[var(--text-secondary)]">
+            브랜드에서 보낸 맞춤 제안을 확인하세요
+          </p>
+        </div>
+
+        {/* Filters (스펙: 수평 스크롤, active 상태 명확) */}
+        <OfferFilters selected={selectedFilter} onChange={handleFilterChange} />
       </div>
 
-      {/* Filters */}
-      <FilterChips filters={filters} onToggle={handleFilterToggle} />
-
-      {/* Offers List */}
-      {filteredOffers.length === 0 ? (
-        <EmptyState
-          icon={Gift}
-          title="받은 오퍼가 없습니다"
-          description="브랜드에서 새로운 제안이 오면 여기에 표시됩니다."
+      {/* Content */}
+      <div className="px-[var(--sp-4)] pt-[var(--sp-4)]">
+        <OfferList
+          filter={selectedFilter}
+          limit={10}
+          onAccept={handleAccept}
+          onLater={handleLater}
+          onOpenDetail={handleOpenDetail}
         />
-      ) : (
-        <div className="space-y-[var(--sp-3)]">
-          {filteredOffers.map((offer) => (
-            <OfferCard
-              key={offer.id}
-              offer={offer}
-              onAccept={handleAccept}
-              onDismiss={handleDismiss}
-              onOpenDetail={handleOpenDetail}
-            />
-          ))}
+      </div>
+
+      {/* Hidden wallet count for badge sync (can be moved to context/store) */}
+      {walletCount > 0 && (
+        <div className="sr-only" aria-live="polite">
+          지갑에 {walletCount}개의 체험권이 추가되었습니다
         </div>
       )}
     </div>

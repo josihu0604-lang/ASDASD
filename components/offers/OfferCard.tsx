@@ -90,17 +90,19 @@ export default function OfferCard({
         </div>
       )}
 
-      {/* Actions */}
+      {/* Actions - 스펙: 터치타겟 48x48px, 200ms 피드백 */}
       <div className="flex gap-[var(--sp-2)]">
         <button
           onClick={() => onAccept(offer.id)}
-          className={`${getButtonClasses('primary', 'md')} flex-1`}
+          className={`${getButtonClasses('primary', 'md')} flex-1 min-h-[var(--touch-min)] transition-all duration-[var(--dur-md)] hover:scale-[0.98] active:scale-95`}
+          aria-label={`${offer.brandName} 오퍼 수락`}
         >
           수락
         </button>
         <button
           onClick={() => onDismiss(offer.id)}
-          className={getButtonClasses('ghost', 'md')}
+          className={`${getButtonClasses('ghost', 'md')} min-h-[var(--touch-min)] transition-all duration-[var(--dur-md)] hover:scale-[0.98] active:scale-95`}
+          aria-label="나중에 보기"
         >
           나중에
         </button>

@@ -2,169 +2,140 @@
 
 import { useState } from 'react';
 import QRScannerView from '@/components/scan/QRScannerView';
-import { ScanResult, ScanError } from '@/types';
+import VerifySheet, { VerifyResult } from '@/components/scan/VerifySheet';
+import { ScanError } from '@/types';
 import { analytics } from '@/lib/analytics';
-import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
-import { getButtonClasses } from '@/lib/button-presets';
+import { useRouter } from 'next/navigation';
 
 export default function ScanPage() {
-  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const router = useRouter();
   const [showScanner, setShowScanner] = useState(true);
+  const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
+  const [voucherData, setVoucherData] = useState<{
+    title?: string;
+    benefit?: string;
+    placeName?: string;
+  }>({});
 
-  const handleScanResult = (payload: string) => {
-    console.log('Scan result:', payload);
-
-    // Parse QR code payload
-    let result: ScanResult;
-
-    if (payload.startsWith('VOUCHER:')) {
-      const voucherId = payload.replace('VOUCHER:', '');
-      result = {
-        kind: 'voucher',
-        payload,
-        voucherId,
-        timestamp: new Date(),
-      };
-      analytics.qrScanResult('voucher');
-    } else if (payload.startsWith('CHECKIN:')) {
-      const placeId = payload.replace('CHECKIN:', '');
-      result = {
-        kind: 'checkin',
-        payload,
-        placeId,
-        timestamp: new Date(),
-      };
-      analytics.qrScanResult('checkin');
-    } else if (payload.startsWith('MEMBER:')) {
-      result = {
-        kind: 'membership',
-        payload,
-        timestamp: new Date(),
-      };
-      analytics.qrScanResult('membership');
-    } else {
-      result = {
-        kind: 'unknown',
-        payload,
-        timestamp: new Date(),
-      };
-      analytics.qrScanResult('unknown');
-    }
-
-    setScanResult(result);
+  const handleScanResult = async (payload: string) => {
+    console.log('[Scan] QR detected:', payload);
     setShowScanner(false);
+
+    // Parse and verify QR code
+    // 스펙: 왕복 ≤800ms (네트워크 환경 보통)
+    try {
+      // Simulate API call for verification
+      const startTime = Date.now();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      if (payload.startsWith('VOUCHER:')) {
+        const voucherId = payload.replace('VOUCHER:', '');
+
+        // Mock verification logic - replace with actual API
+        // 스펙: 4분기 - success/used/expired/invalid
+        const mockResult = Math.random();
+
+        if (mockResult > 0.7) {
+          // 성공 (30%)
+          setVerifyResult('success');
+          setVoucherData({
+            title: '카페 블루 아메리카노',
+            benefit: '아메리카노 1잔 무료',
+            placeName: '카페 블루 강남점',
+          });
+          analytics.track({
+            name: 'qr_verify',
+            properties: { result: 'success', voucher_id: voucherId },
+          });
+          analytics.track({
+            name: 'voucher_use',
+            properties: { voucher_id: voucherId },
+          });
+        } else if (mockResult > 0.5) {
+          // 이미 사용됨 (20%)
+          setVerifyResult('used');
+          setVoucherData({ title: '카페 블루 아메리카노' });
+          analytics.track({
+            name: 'qr_verify',
+            properties: { result: 'used', voucher_id: voucherId },
+          });
+        } else if (mockResult > 0.3) {
+          // 만료됨 (20%)
+          setVerifyResult('expired');
+          setVoucherData({ title: '카페 블루 아메리카노' });
+          analytics.track({
+            name: 'qr_verify',
+            properties: { result: 'expired', voucher_id: voucherId },
+          });
+        } else {
+          // 무효 (30%)
+          setVerifyResult('invalid');
+          analytics.track({
+            name: 'qr_verify',
+            properties: { result: 'invalid', voucher_id: voucherId },
+          });
+        }
+
+        const elapsed = Date.now() - startTime;
+        console.log(`[Scan] Verification completed in ${elapsed}ms`);
+      } else {
+        // 인식할 수 없는 QR 코드
+        setVerifyResult('invalid');
+        analytics.qrScanResult('unknown');
+      }
+    } catch (error) {
+      console.error('[Scan] Verification failed:', error);
+      setVerifyResult('invalid');
+    }
   };
 
   const handleScanError = (code: ScanError) => {
-    console.error('Scan error:', code);
+    console.error('[Scan] Error:', code);
     analytics.qrError(code);
+    // 스펙: 오프라인 시 안내 및 재시도 큐잉
+    if (code === 'unavailable') {
+      // Could show OfflineState here
+    }
   };
 
-  const handleClose = () => {
-    setShowScanner(false);
-  };
-
-  const handleReset = () => {
-    setScanResult(null);
+  const handleCloseSheet = () => {
+    setVerifyResult(null);
+    setVoucherData({});
     setShowScanner(true);
     analytics.qrScanStart();
   };
 
-  const handleConfirmUse = () => {
-    if (scanResult?.voucherId) {
-      console.log('Use voucher:', scanResult.voucherId);
-      // In production, call API to use voucher
-      alert('체험권이 사용되었습니다!');
-      setScanResult(null);
-      setShowScanner(true);
-    }
+  const handleRetry = () => {
+    setVerifyResult(null);
+    setVoucherData({});
+    setShowScanner(true);
+    analytics.qrScanStart();
   };
 
-  if (showScanner) {
-    return (
-      <QRScannerView
-        onResult={handleScanResult}
-        onError={handleScanError}
-        onClose={handleClose}
-      />
-    );
-  }
+  const handleCloseScanner = () => {
+    router.back();
+  };
 
-  // Result sheet
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] p-4 flex items-center justify-center">
-      <div className="max-w-md w-full bg-[var(--bg-base)] border border-[var(--border)] rounded-[var(--radius-xl)] p-6 shadow-[var(--elev-2)]">
-        {/* Icon based on result kind */}
-        <div className="flex justify-center mb-4">
-          {scanResult?.kind === 'voucher' && (
-            <div className="rounded-full bg-[var(--success)]/10 p-6">
-              <CheckCircle size={48} className="text-[var(--success)]" />
-            </div>
-          )}
-          {scanResult?.kind === 'checkin' && (
-            <div className="rounded-full bg-[var(--info)]/10 p-6">
-              <CheckCircle size={48} className="text-[var(--info)]" />
-            </div>
-          )}
-          {scanResult?.kind === 'membership' && (
-            <div className="rounded-full bg-[var(--brand)]/10 p-6">
-              <CheckCircle size={48} className="text-[var(--brand)]" />
-            </div>
-          )}
-          {scanResult?.kind === 'unknown' && (
-            <div className="rounded-full bg-[var(--warning)]/10 p-6">
-              <AlertTriangle size={48} className="text-[var(--warning)]" />
-            </div>
-          )}
-        </div>
+    <>
+      {showScanner && (
+        <QRScannerView
+          onResult={handleScanResult}
+          onError={handleScanError}
+          onClose={handleCloseScanner}
+        />
+      )}
 
-        {/* Result info */}
-        <div className="text-center mb-6">
-          <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-            {scanResult?.kind === 'voucher' && '체험권 확인됨'}
-            {scanResult?.kind === 'checkin' && '체크인 완료'}
-            {scanResult?.kind === 'membership' && '멤버십 확인됨'}
-            {scanResult?.kind === 'unknown' && '알 수 없는 QR 코드'}
-          </h3>
-          <p className="text-sm text-[var(--text-secondary)]">
-            {scanResult?.kind === 'voucher' &&
-              '체험권을 사용하시겠습니까?'}
-            {scanResult?.kind === 'checkin' &&
-              '장소에 체크인되었습니다.'}
-            {scanResult?.kind === 'membership' &&
-              '멤버십이 확인되었습니다.'}
-            {scanResult?.kind === 'unknown' &&
-              '이 QR 코드는 ZZIK LIVE에서 지원하지 않습니다.'}
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="space-y-[var(--sp-2)]">
-          {scanResult?.kind === 'voucher' && (
-            <button
-              onClick={handleConfirmUse}
-              className={getButtonClasses('primary', 'md') + ' w-full'}
-            >
-              체험권 사용하기
-            </button>
-          )}
-
-          <button
-            onClick={handleReset}
-            className={getButtonClasses('ghost', 'md') + ' w-full'}
-          >
-            다시 스캔하기
-          </button>
-        </div>
-
-        {/* Debug info (remove in production) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-6 p-3 bg-[var(--bg-subtle)] rounded-[var(--radius-sm)] text-xs font-mono text-[var(--text-tertiary)]">
-            <p>Kind: {scanResult?.kind}</p>
-            <p className="truncate">Payload: {scanResult?.payload}</p>
-          </div>
-        )}
-      </div>
-    </div>
+      {verifyResult && (
+        <VerifySheet
+          result={verifyResult}
+          voucherTitle={voucherData.title}
+          voucherBenefit={voucherData.benefit}
+          placeName={voucherData.placeName}
+          onClose={handleCloseSheet}
+          onRetry={handleRetry}
+        />
+      )}
+    </>
   );
 }

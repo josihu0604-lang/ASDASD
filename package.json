@@ -19,9 +19,12 @@
   },
   "dependencies": {
     "lucide-react": "^0.553.0",
+    "mapbox-gl": "^3.16.0",
     "next": "16.0.2",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "react-map-gl": "^8.1.0",
+    "supercluster": "^8.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

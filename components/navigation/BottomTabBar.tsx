@@ -95,8 +95,9 @@ export default function BottomTabBar({
               role="tab"
               aria-selected={isActive}
               aria-controls={`${tab.id}-panel`}
+              aria-label={`${tab.label} ${isActive ? '(현재 페이지)' : ''}`}
               onClick={() => handleTabClick(tab.id, tab.path)}
-              className="relative flex min-w-[72px] flex-col items-center gap-[var(--sp-1)] px-3 py-2 transition-colors duration-[var(--dur-md)]"
+              className="relative flex min-w-[72px] flex-col items-center gap-[var(--sp-1)] px-3 py-2 transition-colors duration-[var(--dur-md)] min-h-[var(--touch-min)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2 focus:ring-offset-[var(--bg-base)] rounded-[var(--radius-sm)]"
             >
               {/* Active indicator */}
               {isActive && (
