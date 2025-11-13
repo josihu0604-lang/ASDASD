@@ -23,7 +23,7 @@
     "next": "16.0.2",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "react-map-gl": "^8.1.0",
+    "react-map-gl": "^7.1.7",
     "supercluster": "^8.0.1"
   },
   "devDependencies": {
