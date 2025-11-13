@@ -15,7 +15,16 @@
     "fix:cache": "./scripts/auto-fix.sh cache",
     "fix:port": "./scripts/auto-fix.sh port",
     "fix:types": "./scripts/auto-fix.sh types",
-    "logs:clean": "./scripts/auto-fix.sh logs"
+    "logs:clean": "./scripts/auto-fix.sh logs",
+    "test": "vitest",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "test:smoke": "./scripts/test-api-routes.sh",
+    "test:all": "npm run test:unit && npm run test:e2e"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -31,13 +40,17 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.0.8",
+    "@vitest/ui": "^4.0.8",
     "eslint": "^9",
     "eslint-config-next": "16.0.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.8"
   }
 }
