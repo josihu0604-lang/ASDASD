@@ -8,7 +8,9 @@ export const CursorSchema = z.string().optional();
 export const OffersQuerySchema = z.object({
   filter: z.enum(['all', 'new', 'expiring']).default('all'),
   cursor: CursorSchema,
-  limit: z.coerce.number().int().min(1).max(50).default(10),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  lat: z.coerce.number().min(-90).max(90).optional(), // For distance calculation
+  lng: z.coerce.number().min(-180).max(180).optional(),
 });
 
 export const OfferAcceptParamsSchema = z.object({
@@ -29,7 +31,7 @@ export const WalletLedgerQuerySchema = z.object({
 
 // QR
 export const QRVerifyBodySchema = z.object({
-  token: z.string().min(1),
+  token: z.string().min(24).max(256), // Enforce reasonable token length
 });
 
 // Places
