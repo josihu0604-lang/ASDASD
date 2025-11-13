@@ -1,0 +1,5 @@
+{
+  "description": "🌍 ZZIK LIVE - Location-based real-time experience platform with triple verification (GPS × QR × Receipt)",
+  "homepage": "https://zzik.live",
+  "topics": ["nextjs", "mapbox", "geolocation", "qr-code", "real-time", "typescript", "postgis", "privacy-first"]
+}
