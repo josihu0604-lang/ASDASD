@@ -40,9 +40,37 @@ export default function BottomTabBar({
   // Determine active tab from pathname if not provided
   const activeTab = mounted
     ? active ||
-      tabs.find((tab) => pathname.startsWith(tab.path))?.id ||
+      tabs.find((tab) => pathname?.startsWith(tab.path))?.id ||
       'pass'
-    : active || 'pass';
+    : 'pass';
+
+  // Don't render until mounted to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <nav
+        role="tablist"
+        className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--border)] bg-[var(--bg-base)]/90 backdrop-blur-[2px] pb-[env(safe-area-inset-bottom)]"
+        aria-label="Main navigation"
+      >
+        <div className="flex items-center justify-around" style={{ opacity: 0 }}>
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <div
+                key={tab.id}
+                className="relative flex min-w-[72px] flex-col items-center gap-[var(--sp-1)] px-3 py-2"
+              >
+                <div className="relative">
+                  <Icon size={24} strokeWidth={1.5} aria-hidden="true" />
+                </div>
+                <span className="text-xs font-medium">{tab.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </nav>
+    );
+  }
 
   const handleTabClick = (tab: TabName, path: string) => {
     onTabChange?.(tab);
