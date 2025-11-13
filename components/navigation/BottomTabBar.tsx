@@ -3,7 +3,7 @@
 import { TabName } from '@/types';
 import { Ticket, Gift, QrCode, Wallet } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface BottomTabBarProps {
   active?: TabName;
@@ -30,12 +30,19 @@ export default function BottomTabBar({
 }: BottomTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by only using pathname after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Determine active tab from pathname if not provided
-  const activeTab =
-    active ||
-    tabs.find((tab) => pathname.startsWith(tab.path))?.id ||
-    'pass';
+  const activeTab = mounted
+    ? active ||
+      tabs.find((tab) => pathname.startsWith(tab.path))?.id ||
+      'pass'
+    : active || 'pass';
 
   const handleTabClick = (tab: TabName, path: string) => {
     onTabChange?.(tab);
