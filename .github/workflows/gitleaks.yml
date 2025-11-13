@@ -1,0 +1,47 @@
+name: Gitleaks Secret Detection
+
+on:
+  pull_request:
+  push:
+    branches: [main, genspark_ai_developer]
+  workflow_dispatch:
+
+jobs:
+  scan:
+    name: Gitleaks Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for comprehensive scanning
+      
+      - name: 🔍 Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: 💬 Comment on PR
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `⚠️ **Security Alert**: Potential secrets detected in this PR!
+              
+              Please review the Gitleaks scan results and ensure no sensitive information is being committed.
+              
+              Common issues:
+              - API keys or tokens
+              - Database credentials  
+              - Private keys or certificates
+              
+              **Action Required**: Remove any detected secrets and rotate them immediately.`
+            });
