@@ -1,0 +1,162 @@
+@import "tailwindcss";
+
+:root {
+  /* Text */
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-tertiary: #6B7280;
+  --text-inverse: #FFFFFF;
+
+  /* Background/Surface */
+  --bg-base: #FFFFFF;
+  --bg-subtle: #F9FAFB;
+  --bg-elev-1: #FFFFFFCC;
+  --bg-elev-2: #FFFFFFF2;
+  --bg-inverse: #111827;
+
+  /* Brand & States */
+  --brand: #2563EB;
+  --brand-hover: #1D4ED8;
+  --brand-active: #1E40AF;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --info: #0EA5E9;
+
+  /* Border & Ring */
+  --border: #E5E7EB;
+  --border-strong: #D1D5DB;
+  --ring: #93C5FD;
+
+  /* Overlay & Shadow */
+  --scrim: rgba(0, 0, 0, 0.4);
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --elev-2: 0 6px 16px rgba(0, 0, 0, 0.10);
+
+  /* Spacing (4px grid) */
+  --sp-0: 0px;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+
+  /* Motion */
+  --dur-fast: 120ms;
+  --dur-md: 200ms;
+  --dur-slow: 320ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.32, 0, 0.67, 0);
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dark {
+  --text-primary: #F9FAFB;
+  --text-secondary: #D1D5DB;
+  --text-tertiary: #9CA3AF;
+  --text-inverse: #111827;
+  --bg-base: #111827;
+  --bg-subtle: #1F2937;
+  --bg-elev-1: #111827CC;
+  --bg-elev-2: #111827F2;
+  --border: #374151;
+  --border-strong: #4B5563;
+  --ring: #60A5FA;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Utility classes for design tokens */
+.scale-98 {
+  transform: scale(0.98);
+}
+
+@keyframes pin-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.85;
+  }
+}
+
+.animate-pin-pulse {
+  animation: pin-pulse 600ms var(--ease-soft);
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-badge-pop {
+  animation: badge-pop var(--dur-fast) var(--ease-out);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up var(--dur-md) var(--ease-out);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s linear infinite;
+  background: linear-gradient(to right, var(--bg-subtle) 0%, var(--border) 50%, var(--bg-subtle) 100%);
+  background-size: 800px 100px;
+}
