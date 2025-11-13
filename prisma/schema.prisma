@@ -1,0 +1,395 @@
+// ZZIK LIVE - Prisma Schema
+// Database: PostgreSQL 16 + PostGIS 3.6
+// Core Value: "지도로 증명되는 LIVE 체험" (GPS + QR + 영수증 삼중 검증)
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis]
+}
+
+// ============================================
+// User & Authentication
+// ============================================
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  phone     String?  @unique
+  nickname  String
+  avatarUrl String?  @map("avatar_url")
+  role      UserRole @default(CREATOR)
+
+  // Social Links
+  instagramUrl String? @map("instagram_url")
+  youtubeUrl   String? @map("youtube_url")
+  tiktokUrl    String? @map("tiktok_url")
+
+  // Verification & Status
+  isVerified Boolean @default(false) @map("is_verified")
+  isActive   Boolean @default(true) @map("is_active")
+
+  // Privacy (geohash5 ~2.4km resolution)
+  lastGeohash5 String? @map("last_geohash5") // NO raw lat/lng
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  offers        Offer[]
+  reels         Reel[]
+  walletEntries WalletEntry[]
+  vouchers      Voucher[]
+  sessions      Session[]
+  magicLinks    MagicLink[]
+  otpCodes      OtpCode[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([lastGeohash5])
+  @@map("users")
+}
+
+enum UserRole {
+  CREATOR
+  BUSINESS
+  ADMIN
+}
+
+// ============================================
+// Authentication
+// ============================================
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model MagicLink {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  email     String
+  token     String   @unique
+  usedAt    DateTime? @map("used_at")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([token])
+  @@map("magic_links")
+}
+
+model OtpCode {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  phone     String
+  code      String
+  attempts  Int      @default(0)
+  usedAt    DateTime? @map("used_at")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([phone])
+  @@index([phone, code])
+  @@map("otp_codes")
+}
+
+// ============================================
+// Places & Offers (Core: Map-based Discovery)
+// ============================================
+
+model Place {
+  id      String @id @default(cuid())
+  name    String
+  address String
+
+  // PostGIS Geography (4326 WGS84)
+  // NOTE: Prisma doesn't natively support PostGIS types, use Unsupported()
+  location Unsupported("geography(Point, 4326)")
+
+  // Geohash6 (~0.6km) for indexing
+  geohash6 String @map("geohash6")
+
+  // Business Info
+  category     String
+  phone        String?
+  businessHour String? @map("business_hour")
+  imageUrl     String? @map("image_url")
+
+  // Status
+  isActive Boolean @default(true) @map("is_active")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  offers Offer[]
+  qrCodes QrCode[]
+
+  @@index([geohash6])
+  @@map("places")
+}
+
+model Offer {
+  id      String @id @default(cuid())
+  placeId String @map("place_id")
+  userId  String @map("user_id")
+
+  title       String
+  description String
+  reward      Int // Points amount
+
+  // Offer Status
+  status OfferStatus @default(PENDING)
+
+  // Verification Tracking
+  qrScannedAt    DateTime? @map("qr_scanned_at")
+  receiptUrl     String?   @map("receipt_url")
+  receiptOcrData Json?     @map("receipt_ocr_data")
+  verifiedAt     DateTime? @map("verified_at")
+
+  // Expiry
+  expiresAt DateTime @map("expires_at")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reels Reel[]
+
+  @@index([userId])
+  @@index([placeId])
+  @@index([status])
+  @@map("offers")
+}
+
+enum OfferStatus {
+  PENDING    // Accepted, not yet verified
+  IN_PROGRESS // QR scanned, awaiting receipt/reel
+  COMPLETED  // All verification complete
+  REWARDED   // Reward issued
+  EXPIRED    // Offer expired
+  FAILED     // Verification failed
+}
+
+// ============================================
+// QR Codes (Triple Verification: GPS + QR + Receipt)
+// ============================================
+
+model QrCode {
+  id      String @id @default(cuid())
+  placeId String @map("place_id")
+
+  // QR Code Data (SHA-256 hashed)
+  code String @unique
+
+  // Validity
+  isActive  Boolean   @default(true) @map("is_active")
+  expiresAt DateTime? @map("expires_at")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  scans QrScan[]
+
+  @@index([placeId])
+  @@index([code])
+  @@map("qr_codes")
+}
+
+model QrScan {
+  id       String @id @default(cuid())
+  qrCodeId String @map("qr_code_id")
+  userId   String @map("user_id")
+
+  // Scan Result (4-state)
+  result QrScanResult
+
+  // GPS Verification (proximity check ≤50m)
+  distance Int? // meters
+
+  // Privacy: geohash5 only (~2.4km)
+  geohash5 String
+
+  // Timestamps
+  scannedAt DateTime @default(now()) @map("scanned_at")
+
+  // Relations
+  qrCode QrCode @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+
+  @@index([qrCodeId])
+  @@index([userId])
+  @@index([geohash5])
+  @@map("qr_scans")
+}
+
+enum QrScanResult {
+  SUCCESS       // Valid scan
+  ALREADY_USED  // Already scanned
+  EXPIRED       // QR code expired
+  INVALID       // Invalid code
+}
+
+// ============================================
+// Reels (LIVE Content)
+// ============================================
+
+model Reel {
+  id      String @id @default(cuid())
+  userId  String @map("user_id")
+  offerId String @map("offer_id")
+
+  // Media
+  videoUrl    String  @map("video_url")
+  thumbnailUrl String @map("thumbnail_url")
+  duration    Int // seconds
+
+  // Content
+  caption  String?
+  hashtags String[] @default([])
+
+  // Privacy: geohash5 only
+  geohash5 String
+
+  // Status
+  isPublished Boolean @default(false) @map("is_published")
+  viewCount   Int     @default(0) @map("view_count")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offer Offer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([offerId])
+  @@index([geohash5])
+  @@map("reels")
+}
+
+// ============================================
+// Wallet & Rewards
+// ============================================
+
+model WalletEntry {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+
+  // Transaction
+  type   WalletEntryType
+  amount Int // Points
+  reason String
+
+  // Balance snapshot
+  balanceAfter Int @map("balance_after")
+
+  // Related offer (if reward)
+  offerId String? @map("offer_id")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([offerId])
+  @@map("wallet_entries")
+}
+
+enum WalletEntryType {
+  REWARD
+  REDEEM
+  REFUND
+  BONUS
+}
+
+model Voucher {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+
+  // Voucher Info
+  title       String
+  description String
+  value       Int // Points cost or cash value
+  imageUrl    String? @map("image_url")
+
+  // Validity
+  status    VoucherStatus @default(ACTIVE)
+  expiresAt DateTime      @map("expires_at")
+
+  // Redemption
+  redeemedAt DateTime? @map("redeemed_at")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("vouchers")
+}
+
+enum VoucherStatus {
+  ACTIVE
+  REDEEMED
+  EXPIRED
+}
+
+// ============================================
+// Analytics Events (Privacy: geohash5 only)
+// ============================================
+
+model AnalyticsEvent {
+  id String @id @default(cuid())
+
+  // Event Info
+  eventName String @map("event_name")
+  userId    String? @map("user_id")
+
+  // Properties (JSON)
+  properties Json @default("{}")
+
+  // Privacy: geohash5 only (~2.4km)
+  geohash5 String?
+
+  // Timestamps
+  timestamp DateTime @default(now())
+
+  @@index([eventName])
+  @@index([userId])
+  @@index([geohash5])
+  @@index([timestamp])
+  @@map("analytics_events")
+}
