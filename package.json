@@ -24,7 +24,12 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "test:smoke": "./scripts/test-api-routes.sh",
-    "test:all": "npm run test:unit && npm run test:e2e"
+    "test:all": "npm run test:unit && npm run test:e2e",
+    "deploy": "vercel",
+    "deploy:prod": "vercel --prod",
+    "vercel:env": "vercel env pull .env.local",
+    "vercel:inspect": "vercel inspect",
+    "vercel:logs": "vercel logs"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -51,6 +56,7 @@
     "eslint-config-next": "16.0.2",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vercel": "^48.9.1",
     "vitest": "^4.0.8"
   }
 }
