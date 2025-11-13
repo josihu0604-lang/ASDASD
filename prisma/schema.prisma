@@ -1,0 +1,152 @@
+// ZZIK LIVE Prisma Schema
+// Generator & Client
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [postgis, uuid_ossp]
+}
+
+// Models
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nickname  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  offerInbox OfferInbox[]
+  vouchers   Voucher[]
+  ledger     Ledger[]
+
+  @@map("user")
+}
+
+model Place {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  category        String
+  geom            Unsupported("geography(Point,4326)")
+  geohash6        String
+  scorePopularity Float?   @default(0) @map("score_popularity") @db.Real
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  offers Offer[]
+  reels  Reel[]
+
+  @@index([geohash6])
+  @@map("place")
+}
+
+model Offer {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  brand     String
+  title     String
+  benefit   String
+  terms     String?
+  placeId   String?  @map("place_id") @db.Uuid
+  startAt   DateTime @map("start_at")
+  endAt     DateTime @map("end_at")
+  status    String   @default("active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  place      Place?       @relation(fields: [placeId], references: [id])
+  inbox      OfferInbox[]
+  vouchers   Voucher[]
+
+  @@index([placeId])
+  @@index([status, endAt])
+  @@map("offer")
+}
+
+model OfferInbox {
+  userId    String   @map("user_id") @db.Uuid
+  offerId   String   @map("offer_id") @db.Uuid
+  status    String   @default("new")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  offer Offer @relation(fields: [offerId], references: [id])
+
+  @@id([userId, offerId])
+  @@index([userId, status])
+  @@map("offer_inbox")
+}
+
+model Voucher {
+  id       String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId   String    @map("user_id") @db.Uuid
+  offerId  String    @map("offer_id") @db.Uuid
+  status   String    @default("active")
+  issuedAt DateTime  @default(now()) @map("issued_at")
+  expireAt DateTime  @map("expire_at")
+  usedAt   DateTime? @map("used_at")
+
+  user    User      @relation(fields: [userId], references: [id])
+  offer   Offer     @relation(fields: [offerId], references: [id])
+  qrToken QrToken?
+
+  @@index([userId, status, expireAt])
+  @@index([offerId])
+  @@map("voucher")
+}
+
+model QrToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  voucherId String   @unique @map("voucher_id") @db.Uuid
+  codeHash  String   @unique @map("code_hash")
+  status    String   @default("issued")
+  ttlSec    Int      @map("ttl_sec")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  voucher Voucher @relation(fields: [voucherId], references: [id])
+
+  @@index([codeHash])
+  @@map("qr_token")
+}
+
+model Ledger {
+  id           BigInt   @id @default(autoincrement())
+  userId       String   @map("user_id") @db.Uuid
+  type         String
+  amount       Int
+  balanceAfter Int      @map("balance_after")
+  refId        String?  @map("ref_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("ledger")
+}
+
+model Reel {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  placeId     String?  @map("place_id") @db.Uuid
+  mediaUrl    String   @map("media_url")
+  durationMs  Int      @map("duration_ms")
+  publishedAt DateTime @default(now()) @map("published_at")
+  views       Int      @default(0)
+
+  place Place? @relation(fields: [placeId], references: [id])
+
+  @@index([placeId])
+  @@index([publishedAt(sort: Desc)])
+  @@map("reel")
+}
+
+model Idempotency {
+  key       String   @id @db.Uuid
+  status    Int
+  response  Json
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("idempotency")
+}
