@@ -2,16 +2,18 @@
   "compilerOptions": {
     // Language and Environment
     "target": "ES2022",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "jsx": "preserve",
-    
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "jsx": "react-jsx",
     // Modules
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "allowJs": true,
     "checkJs": false,
-    
     // Emit
     "noEmit": true,
     "incremental": true,
@@ -19,7 +21,6 @@
     "sourceMap": true,
     "removeComments": true,
     "downlevelIteration": true,
-    
     // Type Checking - STRICT MODE
     "strict": true,
     "noImplicitAny": true,
@@ -29,7 +30,6 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    
     // Additional Checks
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -42,26 +42,39 @@
     "forceConsistentCasingInFileNames": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-    
     // Module Resolution
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "isolatedModules": true,
-    
     // Paths
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@/components/*": ["components/*"],
-      "@/lib/*": ["lib/*"],
-      "@/app/*": ["app/*"],
-      "@/types/*": ["types/*"],
-      "@/public/*": ["public/*"],
-      "@/prisma/*": ["prisma/*"],
-      "@/tests/*": ["__tests__/*"]
+      "@/*": [
+        "./*"
+      ],
+      "@/components/*": [
+        "components/*"
+      ],
+      "@/lib/*": [
+        "lib/*"
+      ],
+      "@/app/*": [
+        "app/*"
+      ],
+      "@/types/*": [
+        "types/*"
+      ],
+      "@/public/*": [
+        "public/*"
+      ],
+      "@/prisma/*": [
+        "prisma/*"
+      ],
+      "@/tests/*": [
+        "__tests__/*"
+      ]
     },
-    
     // Plugins
     "plugins": [
       {
@@ -74,7 +87,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "types/**/*.d.ts"
+    "types/**/*.d.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
@@ -86,6 +100,11 @@
     ".turbo",
     "**/*.spec.ts",
     "**/*.test.ts",
-    "__tests__/**/*"
+    "__tests__/**/*",
+    "app/_disabled/**/*",
+    "app/api/_disabled/**/*",
+    "_disabled/**/*",
+    "db/**/*",
+    "scripts/**/*"
   ]
 }
