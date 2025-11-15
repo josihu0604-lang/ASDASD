@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+
+# Run lint-staged for formatting and linting
+npx lint-staged
+
+# Verify no raw coordinates in staged files
+echo "🔒 Checking for privacy violations (raw coordinates)..."
+if git diff --cached --name-only | xargs grep -l -E '(latitude|longitude|\\blat\\b|\\blng\\b)' 2>/dev/null; then
+  echo "⚠️  Warning: Found potential raw coordinates in staged files."
+  echo "Please ensure all location data uses geohash5 for privacy protection."
+fi

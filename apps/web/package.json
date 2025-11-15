@@ -1,0 +1,50 @@
+{
+  "name": "@zzik/web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:load": "k6 run ../../infra/k6/api-smoke.js",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "zod": "^3.23.8",
+    "@supabase/supabase-js": "^2.45.0",
+    "mapbox-gl": "^3.5.0",
+    "@mapbox/mapbox-gl-geocoder": "^5.0.0",
+    "geohash": "^0.0.3",
+    "qrcode": "^1.5.3",
+    "react-qr-reader": "^3.0.0-beta-1",
+    "@tanstack/react-query": "^5.51.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/mapbox-gl": "^3.1.0",
+    "@types/geohash": "^0.0.3",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "^5.6.3",
+    "vitest": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "@playwright/test": "^1.49.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.0.0",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.19"
+  }
+}

@@ -1,0 +1,247 @@
+// Prisma Schema for ZZIK LIVE with Geo-Privacy
+// CRITICAL: Store locations as geohash5 only, never raw coordinates
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model with privacy-first design
+model User {
+  id              String    @id @default(cuid())
+  email           String?   @unique
+  phone           String?   @unique
+  username        String    @unique
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastActiveAt    DateTime?
+  
+  // Geo-privacy: Store only geohash5
+  lastGeohash5    String?   @db.VarChar(5)
+  
+  // Relations
+  sessions        Session[]
+  verifications   Verification[]
+  receipts        Receipt[]
+  qrScans         QRScan[]
+  
+  @@index([email])
+  @@index([phone])
+  @@index([lastGeohash5])
+}
+
+model Session {
+  id              String    @id @default(cuid())
+  userId          String
+  token           String    @unique
+  expiresAt       DateTime
+  createdAt       DateTime  @default(now())
+  
+  // Geo-privacy: Store only geohash5
+  createdGeohash5 String?   @db.VarChar(5)
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([userId])
+}
+
+model Vendor {
+  id              String    @id @default(cuid())
+  name            String
+  category        String
+  status          VendorStatus @default(ACTIVE)
+  
+  // Geo-privacy: Store only geohash5 for vendor location
+  geohash5        String    @db.VarChar(5)
+  
+  // Additional details (no raw coordinates)
+  address         String?
+  description     String?
+  imageUrl        String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  qrCodes         QRCode[]
+  receipts        Receipt[]
+  verifications   Verification[]
+  
+  @@index([geohash5])
+  @@index([category])
+  @@index([status])
+}
+
+model QRCode {
+  id              String    @id @default(cuid())
+  vendorId        String
+  code            String    @unique
+  type            QRCodeType @default(STANDARD)
+  expiresAt       DateTime?
+  usageCount      Int       @default(0)
+  maxUsage        Int?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  scans           QRScan[]
+  
+  @@index([code])
+  @@index([vendorId])
+}
+
+model QRScan {
+  id              String    @id @default(cuid())
+  userId          String?
+  qrCodeId        String
+  
+  // Geo-privacy: Store scan location as geohash5
+  scanGeohash5    String    @db.VarChar(5)
+  
+  scanResult      ScanResult @default(SUCCESS)
+  metadata        Json?
+  
+  createdAt       DateTime  @default(now())
+  
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  qrCode          QRCode    @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([qrCodeId])
+  @@index([scanGeohash5])
+  @@index([createdAt])
+}
+
+model Receipt {
+  id              String    @id @default(cuid())
+  userId          String
+  vendorId        String
+  
+  // Receipt details
+  receiptNumber   String    @unique
+  amount          Decimal   @db.Decimal(10, 2)
+  currency        String    @default("KRW")
+  
+  // Geo-privacy: Store transaction location as geohash5
+  transGeohash5   String    @db.VarChar(5)
+  
+  // Validation status
+  validationStatus ValidationStatus @default(PENDING)
+  validatedAt     DateTime?
+  
+  metadata        Json?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  verifications   Verification[]
+  
+  @@index([userId])
+  @@index([vendorId])
+  @@index([receiptNumber])
+  @@index([transGeohash5])
+  @@index([validationStatus])
+}
+
+model Verification {
+  id              String    @id @default(cuid())
+  userId          String
+  vendorId        String
+  receiptId       String?
+  
+  // Triple verification components
+  gpsVerified     Boolean   @default(false)
+  qrVerified      Boolean   @default(false)
+  receiptVerified Boolean   @default(false)
+  
+  // Geo-privacy: Store verification location as geohash5
+  verifyGeohash5  String    @db.VarChar(5)
+  
+  // Verification result
+  status          VerificationStatus @default(PENDING)
+  score           Int       @default(0) // 0-100
+  
+  metadata        Json?
+  
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+  
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendor          Vendor    @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  receipt         Receipt?  @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([vendorId])
+  @@index([receiptId])
+  @@index([verifyGeohash5])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Analytics events table (for server-side storage)
+model AnalyticsEvent {
+  id              String    @id @default(cuid())
+  sessionId       String
+  userId          String?
+  eventType       String
+  
+  // Geo-privacy: Store event location as geohash5
+  eventGeohash5   String?   @db.VarChar(5)
+  
+  // Event data
+  properties      Json
+  
+  // Performance metrics
+  tookMs          Int?
+  
+  createdAt       DateTime  @default(now())
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([eventType])
+  @@index([eventGeohash5])
+  @@index([createdAt])
+}
+
+// Enums
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  VERIFIED
+}
+
+enum QRCodeType {
+  STANDARD
+  DYNAMIC
+  ONE_TIME
+}
+
+enum ScanResult {
+  SUCCESS
+  INVALID
+  EXPIRED
+  ERROR
+}
+
+enum ValidationStatus {
+  PENDING
+  VALID
+  INVALID
+  EXPIRED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  PARTIAL
+  FAILED
+}

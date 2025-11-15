@@ -1,0 +1,17 @@
+{
+  "name": "@zzik/config",
+  "version": "1.0.0",
+  "private": true,
+  "main": "eslint/index.js",
+  "files": [
+    "eslint",
+    "typescript",
+    "prettier"
+  ],
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint-config-next": "^15.0.0",
+    "eslint-config-prettier": "^9.1.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@zzik/infra-db",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "migrate": "prisma migrate deploy",
+    "migrate:dev": "prisma migrate dev",
+    "generate": "prisma generate",
+    "seed": "psql -d $DATABASE_URL -f ./seeds/seed-test-data.sql",
+    "studio": "prisma studio"
+  },
+  "devDependencies": {
+    "prisma": "^5.18.0",
+    "@prisma/client": "^5.18.0"
+  }
+}

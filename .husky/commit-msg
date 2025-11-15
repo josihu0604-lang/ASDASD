@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# commitlint temporarily disabled (dependency removed)
+# npx commitlint --edit $1
